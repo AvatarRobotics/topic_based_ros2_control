@@ -97,7 +97,6 @@ CallbackReturn TopicBasedSystem::on_init(const hardware_interface::HardwareInfo&
       }
     }
   }
-  ready_to_send_cmds_ = true;
 
   // Search for mimic joints
   for (auto i = 0u; i < info_.joints.size(); ++i)
@@ -162,6 +161,26 @@ CallbackReturn TopicBasedSystem::on_init(const hardware_interface::HardwareInfo&
   {
     initial_states_as_initial_cmd_ = true;
     ready_to_send_cmds_ = false;
+  }
+  else
+  {
+    ready_to_send_cmds_ = true;
+  }
+
+  return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn TopicBasedSystem::on_configure([[maybe_unused]] const rclcpp_lifecycle::State& previous_state)
+{
+  // Wait for the first joint state to be received to indicate the hardware is connected
+  while (rclcpp::ok())
+  {
+    rclcpp::spin_some(node_);
+    if (latest_joint_state_.header.stamp.sec > 0)
+    {
+      break;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
   return CallbackReturn::SUCCESS;
